@@ -115,7 +115,7 @@ class Vocabulary:
             seq = self.tokens[i-seq_length:i]
             seq = [self.word2index[i] for i in seq]
             self.token_sequences.append(seq)
-            
+        
         return np.array(self.token_sequences)
 
     def _clean_sentence(self, sentence):
