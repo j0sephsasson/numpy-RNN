@@ -1,26 +1,16 @@
 import numpy as np
 
 class LSTM:
-    def __init__(self, units, seq_length, batch_size, vocab_size, features, batch_first=True):
+    def __init__(self, units, features):
         """
         Initializes the LSTM layer
         
         Args:
             Units: int (num of LSTM units in layer)
             features: int (dimensionality of token embeddings)
-            seq_length: int (num of tokens at each timestep)
-            vocab_size: int (num of unique tokens in vocab)
         """
         self.hidden_dim = units
         self.dimensionality = features
-        self.seq_length = seq_length
-        self.vocab_size = vocab_size
-        self.batch_size = batch_size
-        self.batch_first = batch_first
-        
-        # Initialize hidden state as zeros
-        self.h = np.zeros((units, features))
-        self.c = np.zeros((units, features))
         
     def _init_orthogonal(self, param):
         """
@@ -104,53 +94,75 @@ class LSTM:
         """
         Initializes the weight and biases of the layer
         
-        Initialize weights according to https://arxiv.org/abs/1312.6120 (_init_orthogonal)
+            -- Initialize weights according to https://arxiv.org/abs/1312.6120 (_init_orthogonal)
+            -- Initialize weights according to https://github.com/keras-team/keras/blob/master/keras/layers/rnn/lstm.py
+            -- Assumptions: Batch_First=True (PyTorch) or time_major=False (keras)
         """
-        if self.batch_first == True:
-            # Weight matrix (forget gate)
-            self.W_f = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
-            
-            # Weight matrix (input gate)
-            self.W_i = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
-            
-            # Weight matrix (candidate)
-            self.W_g = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
-            
-            # Weight matrix of the output gate
-            self.W_o = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
-            
-            # Weight matrix relating the hidden-state to the output
-            self.W_v = self._init_orthogonal(np.random.randn(self.seq_length-1, self.hidden_dim))
-            
-            # Bias for relating the hidden-state to the output
-            self.b_v = np.zeros((self.seq_length-1, 1))
-        else:
-            # Weight matrix (forget gate)
-            self.W_f = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
-            
-            # Weight matrix (input gate)
-            self.W_i = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
-            
-            # Weight matrix (candidate)
-            self.W_g = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
-            
-            # Weight matrix of the output gate
-            self.W_o = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
-            
-            # Weight matrix relating the hidden-state to the output
-            self.W_v = self._init_orthogonal(np.random.randn(self.vocab_size, self.hidden_dim))
-            
-            # Bias for relating the hidden-state to the output
-            self.b_v = np.zeros((self.vocab_size, 1))
-    
-        # Bias for forget gate
-        self.b_f = np.zeros((self.hidden_dim , 1))
+        self.kernel = self._init_orthogonal(np.random.randn(self.dimensionality, self.hidden_dim * 4))
+        self.recurrent_kernel = self._init_orthogonal(np.random.randn(self.hidden_dim, self.hidden_dim * 4))
+        self.bias = np.random.randn(self.hidden_dim * 4, )
 
-        # Bias for input gate
-        self.b_i = np.zeros((self.hidden_dim , 1))  
+        self.kernel_i = self.kernel[:, :self.hidden_dim]
+        self.kernel_f = self.kernel[:, self.hidden_dim: self.hidden_dim * 2]
+        self.kernel_c = self.kernel[:, self.hidden_dim * 2: self.hidden_dim * 3]
+        self.kernel_o = self.kernel[:, self.hidden_dim * 3:]
 
-        # Bias for candidate
-        self.b_g = np.zeros((self.hidden_dim , 1))
+        self.recurrent_kernel_i = self.recurrent_kernel[:, :self.hidden_dim]
+        self.recurrent_kernel_f = self.recurrent_kernel[:, self.hidden_dim: self.hidden_dim * 2]
+        self.recurrent_kernel_c = self.recurrent_kernel[:, self.hidden_dim * 2: self.hidden_dim * 3]
+        self.recurrent_kernel_o = self.recurrent_kernel[:, self.hidden_dim * 3:]
+
+        self.bias_i = self.bias[:self.hidden_dim]
+        self.bias_f = self.bias[self.hidden_dim: self.hidden_dim * 2]
+        self.bias_c = self.bias[self.hidden_dim * 2: self.hidden_dim * 3]
+        self.bias_o = self.bias[self.hidden_dim * 3:]
+
+    def forward(self, inputs, return_sequences=False):
+        """
+        Performs one full forward pass through the layer
+
+        Args:
+            inputs: 3D array of shape (batch_size, seq_length, dimensionality)
+            return_sequences: return the full sequence of hidden states or just the last one (per batch)
+        """
+
+        self._init_params()
+
+        h_tm1 = np.zeros((self.hidden_dim,))
+        c_tm1 = np.zeros((self.hidden_dim,))
         
-        # Bias for output gate
-        self.b_o = np.zeros((self.hidden_dim , 1))
+        self.h_state_out = []
+        
+        for batch in inputs:
+        
+            inputs_i = batch
+            inputs_f = batch
+            inputs_c = batch
+            inputs_o = batch
+
+            h_tm1_i = h_tm1
+            h_tm1_f = h_tm1
+            h_tm1_c = h_tm1
+            h_tm1_o = h_tm1
+
+            x_i = np.dot(inputs_i, self.kernel_i) + self.bias_i
+            x_f = np.dot(inputs_f, self.kernel_f) + self.bias_f
+            x_c = np.dot(inputs_c, self.kernel_c) + self.bias_c
+            x_o = np.dot(inputs_o, self.kernel_o) + self.bias_o
+
+            f = self.sigmoid(x_f + np.dot(h_tm1_f, self.recurrent_kernel_f))
+            i = self.sigmoid(x_i + np.dot(h_tm1_i, self.recurrent_kernel_i))
+            o = self.sigmoid(x_o + np.dot(h_tm1_o, self.recurrent_kernel_o))
+            cbar = self.sigmoid(x_c + np.dot(h_tm1_c, self.recurrent_kernel_c))
+            c = (f * c_tm1) + (i * cbar)
+            ht = o * self.tanh(c)
+            
+            if return_sequences == True:
+                self.h_state_out.append(ht)
+            else:
+                self.h_state_out.append(ht[-1])
+            
+            h_tm1 = ht
+            c_tm1 = c
+        
+        return np.array(self.h_state_out)
