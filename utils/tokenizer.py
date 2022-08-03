@@ -70,7 +70,7 @@ class Vocabulary:
 
         self.word2index = {}
         
-        count = 1 ## 0 is reserved for padding (this is how keras does it)
+        count = 0 ## start at 1 to copy keras --> 0 is reserved for padding (this is how keras does it)
         for k,v in sorted_count.items():
             self.word2index[k] = count
             count += 1

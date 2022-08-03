@@ -1,7 +1,7 @@
 import numpy as np
 
 class LSTM:
-    def __init__(self, units, seq_length, vocab_size, features):
+    def __init__(self, units, seq_length, batch_size, vocab_size, features, batch_first=True):
         """
         Initializes the LSTM layer
         
@@ -15,6 +15,8 @@ class LSTM:
         self.dimensionality = features
         self.seq_length = seq_length
         self.vocab_size = vocab_size
+        self.batch_size = batch_size
+        self.batch_first = batch_first
         
         # Initialize hidden state as zeros
         self.h = np.zeros((units, features))
@@ -104,29 +106,51 @@ class LSTM:
         
         Initialize weights according to https://arxiv.org/abs/1312.6120 (_init_orthogonal)
         """
-        
-        # Weight matrix (forget gate)
-        self.W_f = self._init_orthogonal(np.random.randn(self.hidden_dim , self.seq_length))
-
+        if self.batch_first == True:
+            # Weight matrix (forget gate)
+            self.W_f = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
+            
+            # Weight matrix (input gate)
+            self.W_i = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
+            
+            # Weight matrix (candidate)
+            self.W_g = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
+            
+            # Weight matrix of the output gate
+            self.W_o = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.seq_length-1))
+            
+            # Weight matrix relating the hidden-state to the output
+            self.W_v = self._init_orthogonal(np.random.randn(self.seq_length-1, self.hidden_dim))
+            
+            # Bias for relating the hidden-state to the output
+            self.b_v = np.zeros((self.seq_length-1, 1))
+        else:
+            # Weight matrix (forget gate)
+            self.W_f = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
+            
+            # Weight matrix (input gate)
+            self.W_i = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
+            
+            # Weight matrix (candidate)
+            self.W_g = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
+            
+            # Weight matrix of the output gate
+            self.W_o = self._init_orthogonal(np.random.randn(self.hidden_dim , self.hidden_dim + self.vocab_size))
+            
+            # Weight matrix relating the hidden-state to the output
+            self.W_v = self._init_orthogonal(np.random.randn(self.vocab_size, self.hidden_dim))
+            
+            # Bias for relating the hidden-state to the output
+            self.b_v = np.zeros((self.vocab_size, 1))
+    
         # Bias for forget gate
         self.b_f = np.zeros((self.hidden_dim , 1))
 
-        # Weight matrix (input gate)
-        self.W_i = self._init_orthogonal(np.random.randn(self.hidden_dim , self.seq_length))
-
         # Bias for input gate
-        self.b_i = np.zeros((self.hidden_dim , 1))
-
-        # Weight matrix (candidate)
-        self.W_g = self._init_orthogonal(np.random.randn(self.hidden_dim , self.seq_length))
+        self.b_i = np.zeros((self.hidden_dim , 1))  
 
         # Bias for candidate
         self.b_g = np.zeros((self.hidden_dim , 1))
-
-        # Weight matrix of the output gate
-        self.W_o = self._init_orthogonal(np.random.randn(self.hidden_dim , self.seq_length))
+        
+        # Bias for output gate
         self.b_o = np.zeros((self.hidden_dim , 1))
-
-        # Weight matrix relating the hidden-state to the output
-        self.W_v = self._init_orthogonal(np.random.randn(self.vocab_size, self.hidden_dim))
-        self.b_v = np.zeros((self.vocab_size, 1))
