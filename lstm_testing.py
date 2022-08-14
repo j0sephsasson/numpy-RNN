@@ -1,4 +1,6 @@
-import pytest, numpy as np, tensorflow as tf
+import pytest
+import numpy as np
+import tensorflow as tf
 from layers.lstm import LSTM
 from layers.embedding import EmbeddingLayer
 from utils.tokenizer import Vocabulary
