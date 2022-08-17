@@ -8,17 +8,12 @@ class LSTM:
         Args:
             Units: int (num of LSTM units in layer)
             features: int (dimensionality of token embeddings)
+            seq_length: int (num of timesteps per batch)
         """
         self.name = 'LSTM'
         self.hidden_dim = units
         self.dimensionality = features
         self.seq_length = seq_length
-        self.init_h = np.zeros((self.hidden_dim,))
-        self.init_c = np.zeros((self.hidden_dim,))
-        self.caches = []
-        self.states = []
-        self.cache_grads = []
-        self.state_grads = []
         
     def _init_orthogonal(self, param):
         """
@@ -84,20 +79,6 @@ class LSTM:
         else: # Return the forward pass of the function at x
             return f
     
-    def softmax(self, x):
-        """
-        Computes the softmax for an array x.
-
-        Args:
-         `x`: the array where the function is applied
-         `derivative`: if set to True will return the derivative instead of the forward pass
-        """
-        x_safe = x + 1e-12
-        f = np.exp(x_safe) / np.sum(np.exp(x_safe))
-
-        # Return the forward pass of the function at x
-        return f
-    
     def _init_params(self):
         """
         Initializes the weight and biases of the layer
@@ -125,7 +106,7 @@ class LSTM:
         self.bias_c = self.bias[self.hidden_dim * 2: self.hidden_dim * 3]
         self.bias_o = self.bias[self.hidden_dim * 3:]
 
-    def forward(self, inputs, t, state):
+    def forward(self, inputs, state):
         self._init_params()
         
         inputs_i = inputs
@@ -157,24 +138,25 @@ class LSTM:
 
         return cache, state
         
-    def backward(self, prediction, actual, t, dense_weights):
-        if t == 0:
-            dh_next, dc_next = np.zeros_like(self.states[t]['h']), np.zeros_like(self.states[t]['c'])
-            c_prev = np.zeros_like(self.states[t]['c'])
+    def backward(self, prediction, actual, state_gradients, state, cache, dense_weights, first=False):
+        dh_next, dc_next = state_gradients['h'], state_gradients['c']
+        
+        if first == True:
+            c_prev = np.zeros_like(state['c'])
         else:
-            dh_next, dc_next = self.grad_states[t-1]['h'], self.grad_states[t-1]['c']
-            c_prev = self.states[t-1]['c']
+            c_prev = state['c']
         
         dscores = np.copy(prediction)
         dscores[range(self.seq_length), actual] -= 1
 
-        i, f, cbar, o = self.caches[t]['i'], self.caches[t]['f'], self.caches[t]['cbar'], self.caches[t]['o']
-        h, c = self.states[t]['h'], self.states[t]['c']
+        i, f, cbar, o = cache['i'], cache['f'], cache['cbar'], cache['o']
+        h, c = state['h'], state['c']
 
-        # Hidden to output gradient
+        # Hidden to output (dense) gradient
         dWy = np.dot(h.T, dscores)
-        dby = dscores
         dh = np.dot(dscores, dense_weights.T) + dh_next
+        dby = np.sum(dscores, axis=0, keepdims=True)
+        dby = dby.reshape(dby.shape[1],)
         
         # Gradient for o
         do = self.tanh(c) * dh
@@ -198,29 +180,33 @@ class LSTM:
         
         # Gate gradients, just a normal fully connected layer gradient
         # We backprop into the kernel, recurrent_kernel, bias, inputs (embedding), & hidden state
-        dWf = np.dot(self.caches[t]['inputs'].T, df) # --> kernel
+        dWf = np.dot(cache['inputs'].T, df) # --> kernel
         dXf = np.dot(df, self.kernel_f.T) # --> embedding
         dUf = np.dot(h.T, df) # --> recurrent kernel
         dhf = np.dot(df, self.recurrent_kernel_f) # --> hidden state
-        dbf = df # --> bias
+        dbf = np.sum(df, axis=0, keepdims=True) # --> bias
+        dbf = dbf.reshape(dbf.shape[1],)
 
-        dWi = np.dot(self.caches[t]['inputs'].T, di)
+        dWi = np.dot(cache['inputs'].T, di)
         dXi = np.dot(di, self.kernel_i.T)
         dUi = np.dot(h.T, di)
         dhi = np.dot(di, self.recurrent_kernel_i)
-        dbi = di
+        dbi = np.sum(di, axis=0, keepdims=True)
+        dbi = dbi.reshape(dbi.shape[1],)
         
-        dWo = np.dot(self.caches[t]['inputs'].T, do)
+        dWo = np.dot(cache['inputs'].T, do)
         dXo = np.dot(do, self.kernel_o.T)
         dUo = np.dot(h.T, do)
         dho = np.dot(do, self.recurrent_kernel_o)
-        dbo = do
+        dbo = np.sum(do, axis=0, keepdims=True)
+        dbo = dbo.reshape(dbo.shape[1],)
         
-        dWc = np.dot(self.caches[t]['inputs'].T, dc)
+        dWc = np.dot(cache['inputs'].T, dc)
         dXc = np.dot(dc, self.kernel_c.T)
         dUc = np.dot(h.T, dc)
         dhc = np.dot(dc, self.recurrent_kernel_c)
-        dbc = dc
+        dbc = np.sum(dc, axis=0, keepdims=True)
+        dbc = dbc.reshape(dbc.shape[1],)
         
         # As X was used in multiple gates, the gradient must be accumulated here
         dX = dXo + dXc + dXi + dXf
@@ -233,4 +219,7 @@ class LSTM:
 
         kernel_grads = dict(Wf=dWf, Wi=dWi, Wc=dWc, Wo=dWo, Wy=dWy, bf=dbf, bi=dbi, bc=dbc, bo=dbo, by=dby)
         recurrent_kernel_grads = dict(Uf=dUf, Ui=dUi, Uc=dUc, Uo=dUo)
-        state_grads = (dh_next, dc_next)
+        state_grads = dict(h=dh_next, c=dc_next)
+        embedding_grads = dict(dX=dX)
+        
+        return kernel_grads, recurrent_kernel_grads, state_grads, embedding_grads
