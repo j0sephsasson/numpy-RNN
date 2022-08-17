@@ -157,7 +157,7 @@ class LSTM:
 
         return cache, state
         
-    def backward(self, prediction, actual, t):
+    def backward(self, prediction, actual, t, dense_weights):
         if t == 0:
             dh_next, dc_next = np.zeros_like(self.states[t]['h']), np.zeros_like(self.states[t]['c'])
             c_prev = np.zeros_like(self.states[t]['c'])
@@ -174,7 +174,7 @@ class LSTM:
         # Hidden to output gradient
         dWy = np.dot(h.T, dscores)
         dby = dscores
-        dh = np.dot(dscores, dense.weights.T) + dh_next
+        dh = np.dot(dscores, dense_weights.T) + dh_next
         
         # Gradient for o
         do = self.tanh(c) * dh
