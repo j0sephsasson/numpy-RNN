@@ -2,6 +2,7 @@ import numpy as np
 
 class EmbeddingLayer:
     def __init__(self, vocab_size, hidden_dim):
+        self.name = 'Embedding'
         self.vocab_size = vocab_size
         self.hidden_dim = hidden_dim
         self.weights = np.random.randn(vocab_size, hidden_dim) ## (vocab_size, hidden_dim)
@@ -19,4 +20,4 @@ class EmbeddingLayer:
         """
         assert np.max(array) <= self.vocab_size
 
-        return np.array([self.weights[i] for i in array])    
+        return np.array([self.weights[i] for i in array])   

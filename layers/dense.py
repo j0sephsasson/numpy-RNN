@@ -1,7 +1,7 @@
 import numpy as np
 
 class Dense:
-    def __init__(self, neurons):
+    def __init__(self, neurons, activation='softmax'):
         """
         Initializes a simple dense layer
 
@@ -9,6 +9,8 @@ class Dense:
             'neurons': int, num of output dimensions
         """
         self.neurons = neurons
+        self.name = 'Dense'
+        self.activation = activation
         
     def softmax(self, inputs):
         """
