@@ -14,6 +14,8 @@ class LSTM:
         self.hidden_dim = units
         self.dimensionality = features
         self.seq_length = seq_length
+
+        self._init_params()
         
     def _init_orthogonal(self, param):
         """
@@ -107,7 +109,6 @@ class LSTM:
         self.bias_o = self.bias[self.hidden_dim * 3:]
 
     def forward(self, inputs, state):
-        self._init_params()
         
         inputs_i = inputs
         inputs_f = inputs
@@ -138,14 +139,9 @@ class LSTM:
 
         return cache, state
         
-    def backward(self, prediction, actual, state_gradients, state, cache, dense_weights, first=False):
+    def backward(self, prediction, actual, state_gradients, state, cache, dense_weights):
         dh_next, dc_next = state_gradients['h'], state_gradients['c']
-        
-        if first == True:
-            c_prev = np.zeros_like(state['c'])
-        else:
-            c_prev = state['c']
-        
+
         dscores = np.copy(prediction)
         dscores[range(self.seq_length), actual] -= 1
 
@@ -167,7 +163,7 @@ class LSTM:
         dcbar = dcbar + dc_next
             
         # Gradient for f
-        df = c_prev * dcbar
+        df = cbar * dcbar
         df = self.sigmoid(f, derivative=True) * df
         
         # Gradient for i
