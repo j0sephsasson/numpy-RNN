@@ -10,7 +10,6 @@
 * Perform Backward Pass
 
 ## Next Steps
-* Develop 'Sequential' object to train (using SGD)
 * Different optimizers/loss functions, etc...
 
 ## Notes
@@ -29,7 +28,7 @@
 1. **Implementation**
 2. **Embedding:** NumPy vs Keras
 3. **LSTM:** NumPy vs Keras
-4. **Backward Pass:** Embeddings <-- LSTM <-- Dense
+4. **Usage**
 -----
 
 ## Implementation
@@ -128,19 +127,11 @@ klstm1 = tf.keras.layers.LSTM(HIDDEN)
 out_last = klstm1(inputs)
 ```
 -----
+## **Usage**
 
-## **With Backward Pass**
-
-* Not fully tested yet! Will work for one batch.
-* Working on the Sequential class to propagate forward/backward 
+**NumPy:**
 
 ```
-from lstm import LSTM
-from tokenizer import Vocabulary
-from dense import Dense
-from embedding import EmbeddingLayer
-import numpy as np
-
 # step 1 -- data
 f = open(r"<path/to/data.txt>", 'r', encoding='utf-8').readlines()
 
@@ -154,23 +145,11 @@ token_sequences = v.tokenize(f, 26)
 X = token_sequences[:,:-1]
 y = token_sequences[:,-1]
 
-e = EmbeddingLayer(vocab_size=v.size, hidden_dim=20)
-batch1 = e.predict(X[0])
+model = LSTMSequential()
 
-lstm = LSTM(units=100, features=20, seq_length=25)
-init_state = {'h':np.zeros((100,)), 'c':np.zeros((100,))}
-cache, state = lstm.forward(batch1, init_state)
+model.add(EmbeddingLayer(vocab_size=v.size, hidden_dim=20))
+model.add(LSTM(units=100, features=20, seq_length=25))
+model.add(Dense(v.size, 100))
 
-dense = Dense(v.size)
-final_out = dense.forward(state['h'])
-
-init_state_grads = {'h':np.zeros_like(state['h']), 'c':np.zeros_like(state['c'])}
-
-kernel_grads, recurrent_kernel_grads, state_grads, embedding_grads = lstm.backward(prediction=final_out,
-                                                                                    actual=y[0],
-                                                                                    state_gradients=init_state_grads, 
-                                                                                    state=state, 
-                                                                                    cache=cache,
-                                                                                    dense_weights=dense.weights, 
-                                                                                    first=True)
+model.train(X, y, 200)
 ```
