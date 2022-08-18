@@ -139,9 +139,7 @@ class LSTM:
 
         return cache, state
         
-    def backward(self, prediction, actual, state_gradients, state, cache, dense_weights):
-        dh_next, dc_next = state_gradients['h'], state_gradients['c']
-
+    def backward(self, prediction, actual, state, cache, dense_weights):
         dscores = np.copy(prediction)
         dscores[range(self.seq_length), actual] -= 1
 
@@ -150,7 +148,7 @@ class LSTM:
 
         # Hidden to output (dense) gradient
         dWy = np.dot(h.T, dscores)
-        dh = np.dot(dscores, dense_weights.T) + dh_next
+        dh = np.dot(dscores, dense_weights.T)
         dby = np.sum(dscores, axis=0, keepdims=True)
         dby = dby.reshape(dby.shape[1],)
         
@@ -160,7 +158,6 @@ class LSTM:
 
         # Gradient for cbar
         dcbar = o * dh * self.tanh(c, derivative=True)
-        dcbar = dcbar + dc_next
             
         # Gradient for f
         df = cbar * dcbar
@@ -207,15 +204,8 @@ class LSTM:
         # As X was used in multiple gates, the gradient must be accumulated here
         dX = dXo + dXc + dXi + dXf
 
-        # As h was used in multiple gates, the gradient must be accumulated here
-        dh_next = dho + dhc + dhi + dhf
-
-        # Gradient for c_old in c = hf * c_old + hi * hc
-        dc_next = f * dc
-
         kernel_grads = dict(Wf=dWf, Wi=dWi, Wc=dWc, Wo=dWo, Wy=dWy, bf=dbf, bi=dbi, bc=dbc, bo=dbo, by=dby)
         recurrent_kernel_grads = dict(Uf=dUf, Ui=dUi, Uc=dUc, Uo=dUo)
-        state_grads = dict(h=dh_next, c=dc_next)
         embedding_grads = dict(dX=dX)
         
-        return kernel_grads, recurrent_kernel_grads, state_grads, embedding_grads
+        return kernel_grads, recurrent_kernel_grads, embedding_grads
