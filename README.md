@@ -10,7 +10,9 @@
 * Perform Backward Pass
 
 ## Next Steps
-* Different optimizers/loss functions, etc...
+* Different optimizers/loss functions/activation functions, etc...
+* Right now the 'LSTMSequential' class is sort of hard coded in nature, meaning it needs to be in the form of Embedding -> LSTM -> Dense
+* I want to abstract this even more so we can stack LSTMs, perform TimeDistributed functions, etc..
 
 ## Notes
 * Attempts to mimic the keras implementation
