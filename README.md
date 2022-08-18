@@ -167,10 +167,10 @@ final_out = dense.forward(state['h'])
 init_state_grads = {'h':np.zeros_like(state['h']), 'c':np.zeros_like(state['c'])}
 
 kernel_grads, recurrent_kernel_grads, state_grads, embedding_grads = lstm.backward(prediction=final_out,
-                                            actual=y[0],
-                                            state_gradients=init_state_grads, 
-                                            state=state, 
-                                            cache=cache,
-                                            dense_weights=dense.weights, 
-                                            first=True)
+                                                                                    actual=y[0],
+                                                                                    state_gradients=init_state_grads, 
+                                                                                    state=state, 
+                                                                                    cache=cache,
+                                                                                    dense_weights=dense.weights, 
+                                                                                    first=True)
 ```
