@@ -12,7 +12,7 @@
 ## Next Steps
 * Different optimizers/loss functions/activation functions, etc...
 * Right now the 'LSTMSequential' class is sort of hard coded in nature, meaning it needs to be in the form of Embedding -> LSTM -> Dense
-* I want to abstract this even more so we can stack LSTMs, perform TimeDistributed functions, etc..
+* I want to abstract this even more so we can stack LSTMs, Dense layers, utilize pre-trained embeddings, etc..
 
 ## Notes
 * Attempts to mimic the keras implementation
@@ -27,7 +27,7 @@
 * Unit tests are in the lstm_testing.py file. ```>>> pytest lstm_testing.py```
 
 ## README
-1. **Implementation**
+1. **Implementation Overview**
 2. **Embedding:** NumPy vs Keras
 3. **LSTM:** NumPy vs Keras
 4. **Usage**
@@ -37,6 +37,7 @@
 
 * This implementation follows the keras implementation 1 (there are two), where the hidden state is multiplied with a recurrent weight kernel denoted by 'U'
 * Implementation 2 concatenates the inputs, denoted by 'X', with the hidden state 'h', into term 'z', then multiplies this with the weight kernel. A lot of publications I've seen online utilize implementatin 2.
+* BPTT is computed after each batch, as opposed to forward-prop through the entire dataset and then back-prop through the entire dataset in reverse.
 
 <br>
 
@@ -134,6 +135,12 @@ out_last = klstm1(inputs)
 **NumPy:**
 
 ```
+from lstm import LSTM
+from tokenizer import Vocabulary
+from dense import Dense
+from embedding import EmbeddingLayer
+from sequential import LSTMSequential
+
 # step 1 -- data
 f = open(r"<path/to/data.txt>", 'r', encoding='utf-8').readlines()
 
@@ -154,4 +161,19 @@ model.add(LSTM(units=100, features=20, seq_length=25))
 model.add(Dense(v.size, 100))
 
 model.train(X, y, 200)
+
+LOSS: 8.168681714555001, EPOCH: 0
+LOSS: 8.087044925195558, EPOCH: 1
+LOSS: 8.079370350953514, EPOCH: 2
+LOSS: 8.073516901760831, EPOCH: 3
+LOSS: 8.067811866708043, EPOCH: 4
+LOSS: 8.056927123363462, EPOCH: 5
+LOSS: 8.02688694851102, EPOCH: 6
+LOSS: 7.9702779955759055, EPOCH: 7
+LOSS: 7.862013461804196, EPOCH: 8
+LOSS: 7.684731973489584, EPOCH: 9
+LOSS: 7.432876064202686, EPOCH: 10
+LOSS: 7.13236489440936, EPOCH: 11
+LOSS: 6.832459447309209, EPOCH: 12
+etc...
 ```
