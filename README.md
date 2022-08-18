@@ -51,7 +51,7 @@
 
 <img src="https://latex.codecogs.com/svg.latex?c_%7Bt%7D%3Df_%7Bt%7D%2Ac_%7Bt-1%7D%2Bi_%7Bt%7D%2A%5Cbar%7Bc_%7Bt%7D%7D" height="100" width="450">
 
-<img src="https://latex.codecogs.com/svg.latex?h_%7Bt%7D%3Do_%7Bt%7D%2Atanh%28c_%7Bt%7D%29" height="100" width="450">
+<img src="https://latex.codecogs.com/svg.latex?h_%7Bt%7D%3Do_%7Bt%7D%2Atanh%28c_%7Bt%7D%29" height="100" width="425">
 
 
 -----
@@ -168,7 +168,9 @@ init_state_grads = {'h':np.zeros_like(state['h']), 'c':np.zeros_like(state['c'])
 
 kernel_grads, recurrent_kernel_grads, state_grads, embedding_grads = lstm.backward(prediction=final_out,
                                             actual=y[0],
-                                            state_gradients=init_state_grads,
-state=state,
-cache=cache,dense_weights=dense.weights, first=True)
+                                            state_gradients=init_state_grads, 
+                                            state=state, 
+                                            cache=cache,
+                                            dense_weights=dense.weights, 
+                                            first=True)
 ```
