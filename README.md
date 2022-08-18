@@ -131,7 +131,7 @@ out_last = klstm1(inputs)
 
 ## **With Backward Pass**
 
-* Not tested yet!
+* Not fully tested yet! Will work for one batch.
 * Working on the Sequential class to propagate forward/backward 
 
 ```
