@@ -3,7 +3,7 @@ import numpy as np
 import sys
 sys.path.append('../')
 
-from layers.rnn import RNN
+from layers.rnn import RNNV1
 
 def train(rnn, epochs, data, lr=1e-1):
 
@@ -46,6 +46,6 @@ if __name__ == "__main__":
     seq_length = 8
     hidden_size = 100
 
-    rnn = RNN(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length)
+    rnn = RNNV1(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length)
         
     train(rnn=rnn, epochs=50000, data=data)
