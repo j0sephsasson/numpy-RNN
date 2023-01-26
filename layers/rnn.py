@@ -120,9 +120,20 @@ class RNNV2:
             xs[t][x[t]] = 1
             hs[t] = np.copy(hprev)
 
-            for l in range(self.num_layers):
-                hs[t][l] = np.tanh(np.dot(self.Wxh[l], xs[t]) + np.dot(self.Whh[l], hs[t-1][l]) + self.bh[l]) # hidden state
+            if kwds.get('dropout', False): # use dropout layer (mask)
+
+                for l in range(self.num_layers):
+                    dropout_mask = (np.random.rand(*hs[t-1][l].shape) < (1-0.5)).astype(float)
+                    hs[t-1][l] *= dropout_mask
+                    hs[t][l] = np.tanh(np.dot(self.Wxh[l], xs[t]) + np.dot(self.Whh[l], hs[t-1][l]) + self.bh[l]) # hidden state
+                    hs[t][l] = hs[t][l] / (1 - 0.5)
+
+            else: # no dropout layer (mask)
+
+                for l in range(self.num_layers):
+                    hs[t][l] = np.tanh(np.dot(self.Wxh[l], xs[t]) + np.dot(self.Whh[l], hs[t-1][l]) + self.bh[l]) # hidden state
             
+                
             ys[t] = np.dot(self.Why, hs[t][-1]) + self.by # unnormalized log probabilities for next chars
             ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
             loss += -np.log(ps[t][y[t],0]) # softmax (cross-entropy loss)

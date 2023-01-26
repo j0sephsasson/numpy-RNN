@@ -77,6 +77,6 @@ train(rnn=rnn, epochs=50000, data=data)
 
 ## Next Steps
 * Create a simple tokenizer module [ ]
-* Implement a dropout layer (mask) [ ]
+* Implement a dropout layer (mask) [X]
 * Abstract it even more to allow different hidden sizes in different RNN layers [ ]
 * Create an Embedding layer & implement, (will need to change from sequential learning to batch learning) [ ]
