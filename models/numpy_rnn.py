@@ -3,22 +3,32 @@ import numpy as np
 import sys
 sys.path.append('../')
 
-from layers.rnn import RNNV1
+from layers.rnn import RNNV1, RNNV2
 
 def train(rnn, epochs, data, lr=1e-1):
 
     for _ in range(epochs):
 
         # prepare inputs (we're sweeping from left to right in steps seq_length long)
-        if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0: 
-            hprev = np.zeros((hidden_size,1)) # reset RNN memory
+        if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0:
+
+            if rnn.num_layers == 1:
+                hprev = np.zeros((hidden_size,1)) # reset RNN memory
+            else:
+                hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
+
             rnn.pointer = 0 # go from start of data
 
         x = [char_to_idx[ch] for ch in data[rnn.pointer:rnn.pointer+seq_length]]
         y = [char_to_idx[ch] for ch in data[rnn.pointer+1:rnn.pointer+seq_length+1]]
 
-        # forward / backward pass single batch through network
-        loss, hprev = rnn(inputs=x, targets=y, hprev=hprev, lr=lr)
+        if rnn.num_layers == 1:
+            # forward / backward pass single batch through network
+            loss, hprev = rnn(inputs=x, targets=y, hprev=hprev, lr=lr)
+        else:
+            loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
+            grads = rnn.backward(targets=y, cache=cache)
+            rnn.update(grads=grads, lr=1e-1)
 
         # update loss
         rnn.loss = rnn.loss * 0.999 + loss * 0.001
@@ -46,6 +56,7 @@ if __name__ == "__main__":
     seq_length = 8
     hidden_size = 100
 
-    rnn = RNNV1(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length)
-        
-    train(rnn=rnn, epochs=50000, data=data)
+    rnnv1 = RNNV1(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length)
+    rnnv2 = RNNV2(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length, num_layers=2)
+    
+    train(rnn=rnnv2, epochs=15000, data=data)

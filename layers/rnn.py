@@ -127,14 +127,14 @@ class RNNV2:
             ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t])) # probabilities for next chars
             loss += -np.log(ps[t][y[t],0]) # softmax (cross-entropy loss)
 
-        if kwds.get('loss_only', False):
-            return loss
-        return loss, hs[len(x)-1], {'xs':xs, 'hs':hs, 'ys':ys, 'ps':ps}
+        self.running_loss.append(loss)
+
+        return loss, hs[len(x)-1], {'xs':xs, 'hs':hs, 'ps':ps}
 
     def backward(self, targets, cache):
         """RNN Backward Pass"""
 
-        xs, hs, ys, ps = cache['xs'], cache['hs'], cache['ys'], cache['ps']
+        xs, hs, ps = cache['xs'], cache['hs'], cache['ps']
         dWxh, dWhh, dWhy = [np.zeros_like(w) for w in self.Wxh], [np.zeros_like(w) for w in self.Whh], np.zeros_like(self.Why)
         dbh, dby = [np.zeros_like(b) for b in self.bh], np.zeros_like(self.by)
         dhnext = [np.zeros_like(h) for h in hs[0]]
@@ -155,3 +155,35 @@ class RNNV2:
                 dhnext[l] = np.dot(self.Whh[l].T, dhraw)
 
         return {'dWxh':dWxh, 'dWhh':dWhh, 'dWhy':dWhy, 'dbh':dbh, 'dby':dby}
+
+    def update(self, grads, lr):
+        """Perform Parameter Update w/ Adagrad"""
+
+        # unpack grads
+        dWxh, dWhh, dWhy = grads['dWxh'], grads['dWhh'], grads['dWhy']
+        dbh, dby = grads['dbh'], grads['dby']
+
+        # loop through each layer
+        for i in range(self.num_layers):
+            # clip gradients to mitigate exploding gradients
+            np.clip(dWxh[i], -5, 5, out=dWxh[i])
+            np.clip(dWhh[i], -5, 5, out=dWhh[i])
+            np.clip(dbh[i], -5, 5, out=dbh[i])
+
+            # perform parameter update with Adagrad
+            self.mWxh[i] += dWxh[i] * dWxh[i]
+            self.Wxh[i] -= lr * dWxh[i] / np.sqrt(self.mWxh[i] + 1e-8)
+            self.mWhh[i] += dWhh[i] * dWhh[i]
+            self.Whh[i] -= lr * dWhh[i] / np.sqrt(self.mWhh[i] + 1e-8)
+            self.mbh[i] += dbh[i] * dbh[i]
+            self.bh[i] -= lr * dbh[i] / np.sqrt(self.mbh[i] + 1e-8)
+        
+        # clip gradients for Why and by
+        np.clip(dWhy, -5, 5, out=dWhy)
+        np.clip(dby, -5, 5, out=dby)
+
+        # perform parameter update with Adagrad
+        self.mWhy += dWhy * dWhy
+        self.Why -= lr * dWhy / np.sqrt(self.mWhy + 1e-8)
+        self.mby += dby * dby
+        self.by -= lr * dby / np.sqrt(self.mby + 1e-8)
