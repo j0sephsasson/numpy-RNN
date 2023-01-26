@@ -24,38 +24,38 @@
 ```
     def train(rnn, epochs, data, lr=1e-1):
 
-    for _ in range(epochs):
+        for _ in range(epochs):
 
-        # prepare inputs (we're sweeping from left to right in steps seq_length long)
-        if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0:
+            # prepare inputs (we're sweeping from left to right in steps seq_length long)
+            if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0:
+
+                if rnn.num_layers == 1:
+                    hprev = np.zeros((hidden_size,1)) # reset RNN memory
+                else:
+                    hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
+
+                rnn.pointer = 0 # go from start of data
+
+            x = [char_to_idx[ch] for ch in data[rnn.pointer:rnn.pointer+seq_length]]
+            y = [char_to_idx[ch] for ch in data[rnn.pointer+1:rnn.pointer+seq_length+1]]
 
             if rnn.num_layers == 1:
-                hprev = np.zeros((hidden_size,1)) # reset RNN memory
+                # forward / backward pass single batch through network
+                loss, hprev = rnn(inputs=x, targets=y, hprev=hprev, lr=lr)
             else:
-                hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
+                loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
+                grads = rnn.backward(targets=y, cache=cache)
+                rnn.update(grads=grads, lr=1e-1)
 
-            rnn.pointer = 0 # go from start of data
+            # update loss
+            rnn.loss = rnn.loss * 0.999 + loss * 0.001
 
-        x = [char_to_idx[ch] for ch in data[rnn.pointer:rnn.pointer+seq_length]]
-        y = [char_to_idx[ch] for ch in data[rnn.pointer+1:rnn.pointer+seq_length+1]]
+            ## show progress now and then
+            if rnn.iteration % 1000 == 0: 
+                print('iter {}, loss: {}'.format(rnn.iteration, rnn.loss))
 
-        if rnn.num_layers == 1:
-            # forward / backward pass single batch through network
-            loss, hprev = rnn(inputs=x, targets=y, hprev=hprev, lr=lr)
-        else:
-            loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
-            grads = rnn.backward(targets=y, cache=cache)
-            rnn.update(grads=grads, lr=1e-1)
-
-        # update loss
-        rnn.loss = rnn.loss * 0.999 + loss * 0.001
-
-        ## show progress now and then
-        if rnn.iteration % 1000 == 0: 
-            print('iter {}, loss: {}'.format(rnn.iteration, rnn.loss))
-
-        rnn.pointer += seq_length # move data pointer
-        rnn.iteration += 1 # iteration counter 
+            rnn.pointer += seq_length # move data pointer
+            rnn.iteration += 1 # iteration counter 
 
 train(rnn=rnn, epochs=50000, data=data)
 ```
