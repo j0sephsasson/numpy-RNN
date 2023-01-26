@@ -8,8 +8,6 @@
 * > chars = list(set(data)) <br> <br> data_size, vocab_size = len(data), len(chars) 
 * > char_to_idx = { ch:i for i,ch in enumerate(chars) } <br> <br> idx_to_char = { i:ch for i,ch in enumerate(chars) }
 
-<br>
-<br>
 
 #### Step 2: Initialize RNN
 ``` 
@@ -20,9 +18,6 @@
 
     rnn = RNN(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length, num_layers=num_layers)
 ```
-
-<br>
-<br>
 
 #### Step 3: Train RNN
 
@@ -69,6 +64,7 @@ iter 8000, loss: 28.308444700574803 <br>
 iter 9000, loss: 27.850707945207795 <br>
 iter 10000, loss: 27.956216211800317 <br>
 etc, etc, etc....
+![Loss](https://github.com/j0sephsasson/numpy-rnn/blob/main/loss.png?raw=true)
 
 <br>
 <br>
