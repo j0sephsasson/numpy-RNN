@@ -53,7 +53,6 @@ train(rnn=rnn, epochs=50000, data=data)
 ```
 **Metrics** 
 
-Model Loss
 ![Loss](https://github.com/j0sephsasson/numpy-rnn/blob/main/loss.png?raw=true)
 
 <br>
