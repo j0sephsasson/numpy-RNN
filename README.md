@@ -51,19 +51,9 @@
 
 train(rnn=rnn, epochs=50000, data=data)
 ```
-**Output -->** 
-> iter 0, loss: 50.0926438964864 <br>
-iter 1000, loss: 45.202044427382155 <br>
-iter 2000, loss: 39.02269934434956 <br>
-iter 3000, loss: 34.42420356459783 <br>
-iter 4000, loss: 31.782778493949618 <br>
-iter 5000, loss: 31.11193231638735 <br>
-iter 6000, loss: 30.386197164765615 <br>
-iter 7000, loss: 29.193954989285736 <br>
-iter 8000, loss: 28.308444700574803 <br>
-iter 9000, loss: 27.850707945207795 <br>
-iter 10000, loss: 27.956216211800317 <br>
-etc, etc, etc....
+**Metrics** 
+
+Model Loss
 ![Loss](https://github.com/j0sephsasson/numpy-rnn/blob/main/loss.png?raw=true)
 
 <br>
