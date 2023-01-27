@@ -54,6 +54,11 @@
             if rnn.iteration % 1000 == 0: 
                 print('iter {}, loss: {}'.format(rnn.iteration, rnn.loss))
 
+                sample_ix = rnn.predict(hprev, x[0], 200)
+                txt = ''.join(idx_to_char[ix] for ix in sample_ix)
+                print('Sample')
+                print ('----\n {} \n----'.format(txt))
+
             rnn.pointer += seq_length # move data pointer
             rnn.iteration += 1 # iteration counter 
 
