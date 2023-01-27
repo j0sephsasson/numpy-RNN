@@ -198,3 +198,36 @@ class RNNV2:
         self.Why -= lr * dWhy / np.sqrt(self.mWhy + 1e-8)
         self.mby += dby * dby
         self.by -= lr * dby / np.sqrt(self.mby + 1e-8)
+
+    def predict(self, hprev, seed_ix, n):
+        """
+        Make predictions using the trained RNN model.
+
+        Parameters:
+        hprev (numpy array): The previous hidden state.
+        seed_ix (int): The seed letter index to start the prediction with.
+        n (int): The number of characters to generate for the prediction.
+
+        Returns:
+        ixes (list): The list of predicted character indices.
+        hs (numpy array): The final hidden state after making the predictions.
+        """
+        x = np.zeros((self.vocab_size, 1))
+        x[seed_ix] = 1
+        ixes = []
+        hs = {}
+        hs[-1] = np.copy(hprev)
+
+        for t in range(n):
+            hs[t] = np.copy(hprev)
+            for l in range(self.num_layers):
+                hs[t][l] = np.tanh(np.dot(self.Wxh[l], x) + np.dot(self.Whh[l], hs[t-1][l]) + self.bh[l]) # hidden state
+            ys = np.dot(self.Why, hs[t][-1]) + self.by # unnormalized log probabilities for next chars
+            ps = np.exp(ys) / np.sum(np.exp(ys)) # probabilities for next chars
+            ix = np.random.choice(range(self.vocab_size), p=ps.ravel())
+            x = np.zeros((self.vocab_size, 1))
+            x[ix] = 1
+            ixes.append(ix)
+
+        # return ixes , hs[n-1]
+        return ixes
