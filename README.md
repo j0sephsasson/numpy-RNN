@@ -29,22 +29,27 @@ rnn = RNN(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length,
 #### Step 3: Train RNN
 
 ```
-def train(rnn, epochs, data, lr=1e-1):
+def train(rnn, epochs, data, lr=1e-1, use_drop=False):
 
     for _ in range(epochs):
 
         # prepare inputs (we're sweeping from left to right in steps seq_length long)
-        if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0: 
-            hprev = [np.zeros((hidden_size, 1)) for _ in range(num_layers)]  # reset RNN memory
+        if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0:
+                
+            hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
+
             rnn.pointer = 0 # go from start of data
 
         x = [char_to_idx[ch] for ch in data[rnn.pointer:rnn.pointer+seq_length]]
         y = [char_to_idx[ch] for ch in data[rnn.pointer+1:rnn.pointer+seq_length+1]]
 
-        ## Call RNN
-        loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
+        if use_drop:
+            loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev, dropout=True)
+        else:
+            loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
+
         grads = rnn.backward(targets=y, cache=cache)
-        rnn.update(grads=grads, lr=1e-1)
+        rnn.update(grads=grads, lr=lr)
 
         # update loss
         rnn.loss = rnn.loss * 0.999 + loss * 0.001
@@ -59,7 +64,7 @@ def train(rnn, epochs, data, lr=1e-1):
             print ('----\n {} \n----'.format(txt))
 
         rnn.pointer += seq_length # move data pointer
-        rnn.iteration += 1 # iteration counter  
+        rnn.iteration += 1 # iteration counter 
 
 train(rnn=rnn, epochs=50000, data=data)
 ```
