@@ -87,6 +87,7 @@ class RNNV2:
         self.hidden_size = hidden_size
         self.vocab_size = vocab_size
         self.num_layers = num_layers
+        self.seq_length = seq_length
 
         # model parameters
         self.Wxh = [np.random.randn(hidden_size, vocab_size)*0.01 for _ in range(num_layers)] # input to hidden
@@ -215,15 +216,19 @@ class RNNV2:
         x = np.zeros((self.vocab_size, 1))
         x[seed_ix] = 1
         ixes = []
+
         hs = {}
         hs[-1] = np.copy(hprev)
 
         for t in range(n):
             hs[t] = np.copy(hprev)
+            
             for l in range(self.num_layers):
                 hs[t][l] = np.tanh(np.dot(self.Wxh[l], x) + np.dot(self.Whh[l], hs[t-1][l]) + self.bh[l]) # hidden state
+            
             ys = np.dot(self.Why, hs[t][-1]) + self.by # unnormalized log probabilities for next chars
             ps = np.exp(ys) / np.sum(np.exp(ys)) # probabilities for next chars
+            
             ix = np.random.choice(range(self.vocab_size), p=ps.ravel())
             x = np.zeros((self.vocab_size, 1))
             x[ix] = 1
@@ -231,3 +236,21 @@ class RNNV2:
 
         # return ixes , hs[n-1]
         return ixes
+
+    def reset_params(self):
+        # model parameters
+        self.Wxh = [np.random.randn(self.hidden_size, self.vocab_size)*0.01 for _ in range(self.num_layers)] # input to hidden
+        self.Whh = [np.random.randn(self.hidden_size, self.hidden_size)*0.01 for _ in range(self.num_layers)] # hidden to hidden
+        self.Why = np.random.randn(self.vocab_size, self.hidden_size)*0.01 # hidden to output
+        self.bh = [np.zeros((self.hidden_size, 1)) for _ in range(self.num_layers)] # hidden bias
+        self.by = np.zeros((self.vocab_size, 1)) # output bias
+
+        # memory variables for training (ada grad from karpathy's github)
+        self.iteration, self.pointer = 0, 0
+        self.mWxh = [np.zeros_like(w) for w in self.Wxh]
+        self.mWhh = [np.zeros_like(w) for w in self.Whh] 
+        self.mWhy = np.zeros_like(self.Why)
+        self.mbh, self.mby = [np.zeros_like(b) for b in self.bh], np.zeros_like(self.by)
+        self.loss = -np.log(1.0/self.vocab_size)*self.seq_length # loss at iteration 0
+
+        self.running_loss = []
