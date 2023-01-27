@@ -5,30 +5,27 @@ sys.path.append('../')
 
 from layers.rnn import RNNV1, RNNV2
 
-def train(rnn, epochs, data, lr=1e-1):
+def train(rnn, epochs, data, lr=1e-1, use_drop=False):
 
     for _ in range(epochs):
 
         # prepare inputs (we're sweeping from left to right in steps seq_length long)
         if rnn.pointer+seq_length+1 >= len(data) or rnn.iteration == 0:
-
-            if rnn.num_layers == 1:
-                hprev = np.zeros((hidden_size,1)) # reset RNN memory
-            else:
-                hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
+                
+            hprev = [np.zeros((hidden_size, 1)) for _ in range(rnn.num_layers)]  # reset RNN memory
 
             rnn.pointer = 0 # go from start of data
 
         x = [char_to_idx[ch] for ch in data[rnn.pointer:rnn.pointer+seq_length]]
         y = [char_to_idx[ch] for ch in data[rnn.pointer+1:rnn.pointer+seq_length+1]]
 
-        if rnn.num_layers == 1:
-            # forward / backward pass single batch through network
-            loss, hprev = rnn(inputs=x, targets=y, hprev=hprev, lr=lr)
+        if use_drop:
+            loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev, dropout=True)
         else:
             loss, hprev, cache = rnn(inputs=x, targets=y, hprev=hprev)
-            grads = rnn.backward(targets=y, cache=cache)
-            rnn.update(grads=grads, lr=1e-1)
+
+        grads = rnn.backward(targets=y, cache=cache)
+        rnn.update(grads=grads, lr=lr)
 
         # update loss
         rnn.loss = rnn.loss * 0.999 + loss * 0.001
@@ -58,10 +55,13 @@ if __name__ == "__main__":
     idx_to_char = { i:ch for i,ch in enumerate(chars) }
 
     ## hyper-params
-    seq_length = 8
-    hidden_size = 100
+    seq_length = 25
+    hidden_size = 128
+    num_layers = 1
 
-    rnnv1 = RNNV1(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length)
-    rnnv2 = RNNV2(hidden_size=hidden_size, vocab_size=vocab_size, seq_length=seq_length, num_layers=2)
+    rnn = RNNV2(hidden_size=hidden_size, 
+                vocab_size=vocab_size, 
+                seq_length=seq_length, 
+                num_layers=num_layers)
     
-    train(rnn=rnnv2, epochs=15000, data=data)
+    train(rnn=rnn, epochs=10000, data=data, use_drop=True)
