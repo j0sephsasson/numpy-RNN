@@ -84,6 +84,15 @@ train(rnn=rnn, epochs=50000, data=data)
 <br>
 <br>
 
+
+## DAG (directed acyclic graph)
+* You can find the PyTorch version of my NumPy RNN in the 'new-features' directory
+
+![DAG](https://github.com/j0sephsasson/numpy-rnn/blob/main/rnn_dag.png?raw=true)
+
+<br>
+<br>
+
 ## Next Steps
 * Create a simple tokenizer module [ ]
 * Implement a dropout layer (mask) [X]
